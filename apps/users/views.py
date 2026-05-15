@@ -1,0 +1,349 @@
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+from django.conf import settings
+from rest_framework import generics, permissions, status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+import random
+import string
+
+from .models import SmsCode
+from .serializers import UserSerializer, RegisterSerializer
+
+User = get_user_model()
+
+
+def get_tokens(user):
+    refresh = RefreshToken.for_user(user)
+    return {'access': str(refresh.access_token), 'refresh': str(refresh)}
+
+
+# ── Регистрация ───────────────────────────────────────────────
+class RegisterView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        phone = serializer.validated_data['phone']
+        password = serializer.validated_data['password']
+        marketing_consent = serializer.validated_data.get('marketing_consent', False)
+
+        if User.objects.filter(phone=phone).exists():
+            return Response({'phone': 'Пользователь с таким номером уже существует.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(phone=phone, password=password,
+                                        marketing_consent=marketing_consent)
+        return Response({'user': UserSerializer(user).data, 'tokens': get_tokens(user)},
+                        status=status.HTTP_201_CREATED)
+
+
+# ── Вход ──────────────────────────────────────────────────────
+class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        phone = request.data.get('phone', '').strip()
+        password = request.data.get('password', '').strip()
+
+        if not phone or not password:
+            return Response({'detail': 'Укажите номер телефона и пароль.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Нормализуем телефон
+        phone_clean = phone.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+        if phone_clean.startswith('8') and len(phone_clean) == 11:
+            phone_clean = '+7' + phone_clean[1:]
+        elif phone_clean.startswith('7') and len(phone_clean) == 11:
+            phone_clean = '+' + phone_clean
+
+        # Ищем пользователя — сначала по нормализованному, потом по оригинальному
+        user = None
+        for p in [phone_clean, phone]:
+            try:
+                user = User.objects.get(phone=p)
+                break
+            except User.DoesNotExist:
+                continue
+
+        if user is None:
+            return Response({'detail': 'Неверный номер телефона или пароль.'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        if not user.check_password(password):
+            return Response({'detail': 'Неверный номер телефона или пароль.'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        if not user.is_active:
+            return Response({'detail': 'Аккаунт заблокирован.'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        return Response({'user': UserSerializer(user).data, 'tokens': get_tokens(user)})
+
+
+# ── Профиль ───────────────────────────────────────────────────
+class ProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class   = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+
+# ── Смена пароля ──────────────────────────────────────────────
+class ChangePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        old_password = request.data.get('old_password', '')
+        new_password = request.data.get('new_password', '')
+
+        if not request.user.check_password(old_password):
+            return Response({'detail': 'Неверный текущий пароль.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if len(new_password) < 6:
+            return Response({'detail': 'Пароль должен быть не менее 6 символов.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.set_password(new_password)
+        request.user.save()
+        return Response({'detail': 'Пароль изменён.'})
+
+
+# ── SMS-коды ──────────────────────────────────────────────────
+def _generate_code():
+    return ''.join(random.choices(string.digits, k=6))
+
+
+def _send_sms(phone, code):
+    if getattr(settings, 'SMS_DEBUG', True):
+        print(f'[SMS DEBUG] {phone}: {code}')
+        return True
+    try:
+        import requests
+        resp = requests.get('https://smsc.ru/sys/send.php', params={
+            'login': settings.SMSC_LOGIN,
+            'psw': settings.SMSC_PASSWORD,
+            'phones': phone,
+            'mes': f'Ваш код: {code}',
+        }, timeout=10)
+        return 'id' in resp.text.lower()
+    except Exception:
+        return False
+
+
+class SendSmsCodeView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        phone = request.data.get('phone', '').strip()
+        purpose = request.data.get('purpose', 'reset')
+
+        if not phone:
+            return Response({'detail': 'Укажите номер телефона.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if purpose == 'reset' and not User.objects.filter(phone=phone).exists():
+            return Response({'detail': 'Пользователь не найден.'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        code = _generate_code()
+        SmsCode.objects.filter(phone=phone, purpose=purpose).delete()
+        SmsCode.objects.create(phone=phone, code=code, purpose=purpose)
+        _send_sms(phone, code)
+
+        return Response({'detail': 'Код отправлен.'})
+
+
+class VerifySmsCodeView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        phone   = request.data.get('phone', '').strip()
+        code    = request.data.get('code', '').strip()
+        purpose = request.data.get('purpose', 'reset')
+
+        try:
+            sms = SmsCode.objects.filter(phone=phone, purpose=purpose).latest('created_at')
+        except SmsCode.DoesNotExist:
+            return Response({'detail': 'Код не найден.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if sms.is_expired():
+            return Response({'detail': 'Код истёк. Запросите новый.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if sms.code != code:
+            return Response({'detail': 'Неверный код.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        sms.delete()
+
+        # Если сброс пароля — возвращаем reset_token
+        if purpose == 'reset':
+            import secrets
+            token = secrets.token_urlsafe(32)
+            try:
+                user = User.objects.get(phone=phone)
+                user.reset_token = token
+                user.save()
+            except User.DoesNotExist:
+                pass
+            return Response({'detail': 'Код подтверждён.', 'reset_token': token})
+
+        return Response({'detail': 'Код подтверждён.'})
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        phone       = request.data.get('phone', '').strip()
+        reset_token = request.data.get('reset_token', '').strip()
+        new_password = request.data.get('new_password', '').strip()
+
+        try:
+            user = User.objects.get(phone=phone, reset_token=reset_token)
+        except User.DoesNotExist:
+            return Response({'detail': 'Недействительный токен.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if len(new_password) < 6:
+            return Response({'detail': 'Пароль должен быть не менее 6 символов.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.reset_token = ''
+        user.save()
+        return Response({'detail': 'Пароль изменён.'})
+
+
+# ── Токен рефреш ──────────────────────────────────────────────
+class RefreshTokenView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        refresh_token = request.data.get('refresh', '')
+        try:
+            token = RefreshToken(refresh_token)
+            return Response({'access': str(token.access_token)})
+        except TokenError:
+            return Response({'detail': 'Токен недействителен или истёк.'},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+
+# ── FCM токен ──────────────────────────────────────────────────
+class SaveFcmTokenView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get('fcm_token', '')
+        if token:
+            request.user.fcm_token = token
+            request.user.save()
+        return Response({'detail': 'OK'})
+
+
+# ── Email верификация ──────────────────────────────────────────
+class SendEmailCodeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        if not email:
+            return Response({'detail': 'Укажите email.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        code = _generate_code()
+        SmsCode.objects.filter(phone=request.user.phone, purpose='email').delete()
+        SmsCode.objects.create(phone=request.user.phone, code=code, purpose='email')
+
+        try:
+            send_mail(
+                subject='Подтверждение email — Авто-помощник',
+                message=f'Ваш код подтверждения: {code}',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            if settings.DEBUG:
+                print(f'[EMAIL DEBUG] {email}: {code}')
+            else:
+                return Response({'detail': f'Ошибка отправки: {e}'},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({'detail': 'Код отправлен.'})
+
+
+class VerifyEmailCodeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        code  = request.data.get('code', '').strip()
+
+        try:
+            sms = SmsCode.objects.filter(
+                phone=request.user.phone, purpose='email').latest('created_at')
+        except SmsCode.DoesNotExist:
+            return Response({'detail': 'Код не найден.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if sms.is_expired():
+            return Response({'detail': 'Код истёк.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if sms.code != code:
+            return Response({'detail': 'Неверный код.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        sms.delete()
+        request.user.email = email
+        request.user.save()
+        return Response({'detail': 'Email подтверждён.'})
+
+
+# ── Вопрос в поддержку ────────────────────────────────────────
+class AskQuestionView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        question = request.data.get('question', '').strip()
+        email    = request.data.get('email', '').strip()
+        phone    = request.data.get('phone', '').strip()
+
+        if not question:
+            return Response({'detail': 'Введите вопрос.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        sender = email or phone or 'Аноним'
+        try:
+            send_mail(
+                subject=f'Вопрос от {sender} — Авто-помощник',
+                message=f'От: {sender}\n\n{question}',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=['mikshindima89@gmail.com'],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+        return Response({'detail': 'Вопрос отправлен.'})
+
+
+# ── Удаление аккаунта ──────────────────────────────────────────
+class DeleteAccountView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request):
+        user = request.user
+        user.is_active = False
+        user.save()
+        return Response({'detail': 'Аккаунт деактивирован.'})
