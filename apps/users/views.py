@@ -37,8 +37,12 @@ class RegisterView(APIView):
             return Response({'phone': 'Пользователь с таким номером уже существует.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.create_user(phone=phone, password=password,
-                                        marketing_consent=marketing_consent)
+        email = serializer.validated_data.get('email', '')
+        user = User.objects.create_user(
+            phone=phone, password=password,
+            marketing_consent=marketing_consent,
+            email=email,
+        )
         return Response({'user': UserSerializer(user).data, 'tokens': get_tokens(user)},
                         status=status.HTTP_201_CREATED)
 
@@ -49,10 +53,11 @@ class LoginView(APIView):
 
     def post(self, request):
         phone = request.data.get('phone', '').strip()
+        email = request.data.get('email', '').strip()
         password = request.data.get('password', '').strip()
 
-        if not phone or not password:
-            return Response({'detail': 'Укажите номер телефона и пароль.'},
+        if not (phone or email) or not password:
+            return Response({'detail': 'Укажите номер телефона или email и пароль.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         # Нормализуем телефон
@@ -64,12 +69,18 @@ class LoginView(APIView):
 
         # Ищем пользователя — сначала по нормализованному, потом по оригинальному
         user = None
-        for p in [phone_clean, phone]:
+        if email:
             try:
-                user = User.objects.get(phone=p)
-                break
+                user = User.objects.get(email=email)
             except User.DoesNotExist:
-                continue
+                pass
+        else:
+            for p in [phone_clean, phone]:
+                try:
+                    user = User.objects.get(phone=p)
+                    break
+                except User.DoesNotExist:
+                    continue
 
         if user is None:
             return Response({'detail': 'Неверный номер телефона или пароль.'},
