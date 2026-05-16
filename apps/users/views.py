@@ -377,16 +377,25 @@ class AskQuestionView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
         sender = email or phone or 'Аноним'
-        try:
-            send_mail(
-                subject=f'Вопрос от {sender} — Авто-помощник',
-                message=f'От: {sender}\n\n{question}',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=['mikshindima89@gmail.com'],
-                fail_silently=True,
-            )
-        except Exception:
-            pass
+        api_key = getattr(settings, 'RESEND_API_KEY', '')
+        if api_key:
+            try:
+                http_requests.post(
+                    'https://api.resend.com/emails',
+                    headers={
+                        'Authorization': f'Bearer {api_key}',
+                        'Content-Type': 'application/json',
+                    },
+                    json={
+                        'from': 'Авто-помощник <noreply@auto-helper-abakan.online>',
+                        'to': ['mikshindima89@gmail.com'],
+                        'subject': f'Вопрос от {sender} — Авто-помощник',
+                        'text': f'От: {sender}\n\n{question}',
+                    },
+                    timeout=10,
+                )
+            except Exception as e:
+                print(f'[EMAIL ERROR] {e}')
 
         return Response({'detail': 'Вопрос отправлен.'})
 
