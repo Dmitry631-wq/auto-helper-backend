@@ -254,12 +254,11 @@ class ResetPasswordView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        phone       = request.data.get('phone', '').strip()
         reset_token = request.data.get('reset_token', '').strip()
         new_password = request.data.get('new_password', '').strip()
 
         try:
-            user = User.objects.get(phone=phone, reset_token=reset_token)
+            user = User.objects.get(reset_token=reset_token)
         except User.DoesNotExist:
             return Response({'detail': 'Недействительный токен.'},
                             status=status.HTTP_400_BAD_REQUEST)
