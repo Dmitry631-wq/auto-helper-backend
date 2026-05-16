@@ -188,7 +188,28 @@ class SendEmailRecoveryCodeView(APIView):
         code = _generate_code()
         SmsCode.objects.filter(phone=user.phone, purpose='reset').delete()
         SmsCode.objects.create(phone=user.phone, code=code, purpose='reset')
-        print(f'[EMAIL RECOVERY] {email}: {code}')
+        api_key = getattr(settings, 'RESEND_API_KEY', '')
+        if api_key:
+            try:
+                http_requests.post(
+                    'https://api.resend.com/emails',
+                    headers={
+                        'Authorization': f'Bearer {api_key}',
+                        'Content-Type': 'application/json',
+                    },
+                    json={
+                        'from': 'Авто-помощник <onboarding@resend.dev>',
+                        'to': [email],
+                        'subject': 'Восстановление доступа — Авто-помощник',
+                        'text': f'Ваш код для восстановления доступа: {code}\n\nКод действителен 5 минут.',
+                    },
+                    timeout=10,
+                )
+            except Exception as e:
+                print(f'[EMAIL ERROR] {e}')
+        else:
+            print(f'[EMAIL RECOVERY DEBUG] {email}: {code}')
+
         return Response({'detail': 'Код отправлен.', 'phone': user.phone})
 class VerifySmsCodeView(APIView):
     permission_classes = [permissions.AllowAny]
