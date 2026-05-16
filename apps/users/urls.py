@@ -15,4 +15,5 @@ urlpatterns = [
     path('email/verify/',       views.VerifyEmailCodeView.as_view()),
     path('ask-question/',       views.AskQuestionView.as_view()),
     path('delete-account/',     views.DeleteAccountView.as_view()),
+    path('recovery/send-email-code/', views.SendEmailRecoveryCodeView.as_view()),
 ]

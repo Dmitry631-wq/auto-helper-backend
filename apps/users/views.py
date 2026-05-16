@@ -171,7 +171,25 @@ class SendSmsCodeView(APIView):
 
         return Response({'detail': 'Код отправлен.'})
 
+class SendEmailRecoveryCodeView(APIView):
+    permission_classes = [permissions.AllowAny]
 
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        if not email:
+            return Response({'detail': 'Укажите email.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'detail': 'Пользователь с таким email не найден.'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        code = _generate_code()
+        SmsCode.objects.filter(phone=user.phone, purpose='reset').delete()
+        SmsCode.objects.create(phone=user.phone, code=code, purpose='reset')
+        print(f'[EMAIL RECOVERY] {email}: {code}')
+        return Response({'detail': 'Код отправлен.', 'phone': user.phone})
 class VerifySmsCodeView(APIView):
     permission_classes = [permissions.AllowAny]
 
