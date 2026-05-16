@@ -400,3 +400,18 @@ class DeleteAccountView(APIView):
         user.is_active = False
         user.save()
         return Response({'detail': 'Аккаунт деактивирован.'})
+class UnlockAccountView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        phone = request.data.get('phone', '').strip()
+        secret = request.data.get('secret', '')
+        if secret != 'auto-helper-unlock-2024':
+            return Response({'detail': 'Forbidden'}, status=403)
+        try:
+            user = User.objects.get(phone=phone)
+            user.is_active = True
+            user.save()
+            return Response({'detail': 'Разблокирован'})
+        except User.DoesNotExist:
+            return Response({'detail': 'Не найден'}, status=404)

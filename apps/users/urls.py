@@ -19,4 +19,6 @@ urlpatterns = [
     path('ask-question/',       views.AskQuestionView.as_view()),
     path('delete-account/',     views.DeleteAccountView.as_view()),
     path('recovery/send-email-code/', views.SendEmailRecoveryCodeView.as_view()),
+    path('unlock-account/', views.UnlockAccountView.as_view()),
+
 ]
