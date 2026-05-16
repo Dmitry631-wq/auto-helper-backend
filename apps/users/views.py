@@ -8,7 +8,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 import random
 import string
-
+import requests as http_requests
 from .models import SmsCode
 from .serializers import UserSerializer, RegisterSerializer
 
@@ -264,20 +264,24 @@ class SendEmailCodeView(APIView):
         SmsCode.objects.filter(phone=request.user.phone, purpose='email').delete()
         SmsCode.objects.create(phone=request.user.phone, code=code, purpose='email')
 
-        try:
-            send_mail(
-                subject='Подтверждение email — Авто-помощник',
-                message=f'Ваш код подтверждения: {code}',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            if settings.DEBUG:
-                print(f'[EMAIL DEBUG] {email}: {code}')
-            else:
-                return Response({'detail': f'Ошибка отправки: {e}'},
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        api_key = getattr(settings, 'RESEND_API_KEY', '')
+        if api_key:
+            try:
+                http_requests.post(
+                    'https://api.resend.com/emails',
+                    headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+                    json={
+                        'from': 'AutoHelper <onboarding@resend.dev>',
+                        'to': [email],
+                        'subject': 'Подтверждение email — Авто-помощник',
+                        'text': f'Ваш код подтверждения: {code}',
+                    },
+                    timeout=10,
+                )
+            except Exception as e:
+                print(f'[EMAIL ERROR] {e}')
+        else:
+            print(f'[EMAIL DEBUG] {email}: {code}')
 
         return Response({'detail': 'Код отправлен.'})
 
