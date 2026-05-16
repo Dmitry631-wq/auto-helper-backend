@@ -125,12 +125,21 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'user_id', 'author_name', 'created_at']
 
     def get_author_name(self, obj):
+        # Сначала пробуем имя и фамилию из профиля
+        first = getattr(obj.user, 'first_name', '') or ''
+        last = getattr(obj.user, 'last_name', '') or ''
+        full_name = f'{first} {last}'.strip()
+        if full_name:
+            return full_name
+        # Затем поле name
         name = getattr(obj.user, 'name', '') or ''
         if name and name.strip():
             return name.strip()
+        # Затем username
         username = getattr(obj.user, 'username', '') or ''
         if username and not username.startswith('reviewer_') and not username.startswith('user_'):
             return username
+        # Последний вариант — номер телефона
         phone = getattr(obj.user, 'phone', '') or ''
         if phone and len(phone) >= 4:
             return f'Пользователь {phone[-4:]}'
