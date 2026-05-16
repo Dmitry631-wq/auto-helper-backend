@@ -397,9 +397,8 @@ class DeleteAccountView(APIView):
 
     def delete(self, request):
         user = request.user
-        user.is_active = False
-        user.save()
-        return Response({'detail': 'Аккаунт деактивирован.'})
+        user.delete()
+        return Response({'detail': 'Аккаунт удалён.'})
 class UnlockAccountView(APIView):
     permission_classes = [permissions.AllowAny]
 
