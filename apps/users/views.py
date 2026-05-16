@@ -198,7 +198,7 @@ class SendEmailRecoveryCodeView(APIView):
                         'Content-Type': 'application/json',
                     },
                     json={
-                        'from': 'Авто-помощник <onboarding@resend.dev>',
+                        'from': 'Авто-помощник <noreply@auto-helper-abakan.online>',
                         'to': [email],
                         'subject': 'Восстановление доступа — Авто-помощник',
                         'text': f'Ваш код для восстановления доступа: {code}\n\nКод действителен 5 минут.',
@@ -321,7 +321,7 @@ class SendEmailCodeView(APIView):
                     'https://api.resend.com/emails',
                     headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
                     json={
-                        'from': 'AutoHelper <onboarding@resend.dev>',
+                        'from': 'Авто-помощник <noreply@auto-helper-abakan.online>',
                         'to': [email],
                         'subject': 'Подтверждение email — Авто-помощник',
                         'text': f'Ваш код подтверждения: {code}',
