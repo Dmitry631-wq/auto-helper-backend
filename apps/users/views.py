@@ -404,14 +404,18 @@ class UnlockAccountView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        phone = request.data.get('phone', '').strip()
         secret = request.data.get('secret', '')
         if secret != 'auto-helper-unlock-2024':
             return Response({'detail': 'Forbidden'}, status=403)
-        try:
-            user = User.objects.get(phone=phone)
-            user.is_active = True
-            user.save()
-            return Response({'detail': 'Разблокирован'})
-        except User.DoesNotExist:
+        phone = request.data.get('phone', '').strip()
+        if not phone:
+            # Показываем всех пользователей
+            users = list(User.objects.values('id', 'phone', 'email', 'is_active', 'first_name', 'last_name'))
+            return Response({'users': users})
+        # Разблокируем по телефону или email
+        user = User.objects.filter(phone=phone).first() or User.objects.filter(email=phone).first()
+        if not user:
             return Response({'detail': 'Не найден'}, status=404)
+        user.is_active = True
+        user.save()
+        return Response({'detail': f'Разблокирован: {user.phone}'})
