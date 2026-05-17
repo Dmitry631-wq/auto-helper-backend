@@ -1,0 +1,41 @@
+{% extends 'web/base.html' %}
+{% block title %}Отзывы — Авто-помощник Абакан{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Отзывы</h1><p>Реальные отзывы пользователей об организациях</p></div>
+<div style="padding:22px 5vw 40px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+    <form method="get" style="flex:1;max-width:360px;position:relative">
+      <input type="text" name="org" value="{{ org_filter }}" placeholder="Поиск по организации..." style="width:100%;padding:10px 14px 10px 40px;border-radius:50px;border:1.5px solid var(--beige-mid);background:var(--card);font-family:'Nunito',sans-serif;font-size:14px;color:var(--dark);outline:none">
+      <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:13px">🔍</span>
+    </form>
+    {% if user.is_authenticated %}
+    <a href="{% url 'web:catalog' %}" class="btn-nav">+ Написать отзыв</a>
+    {% else %}
+    <a href="{% url 'web:login' %}" class="btn-nav">Войти чтобы написать</a>
+    {% endif %}
+  </div>
+  {% for org in orgs_with_reviews %}
+  <div style="margin-bottom:36px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <a href="{% url 'web:org_detail' org.pk %}" style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;color:var(--dark)">{{ org.name }}</a>
+      <span style="color:#F59E0B;font-weight:700">★ {{ org.avg_rating|floatformat:1 }}</span>
+      <span style="font-size:12px;color:var(--gray)">({{ org.review_count }} отз.)</span>
+    </div>
+    <div class="grid-3">
+      {% for r in org.reviews.all|slice:":4" %}
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:37px;height:37px;border-radius:50%;background:var(--beige);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:700;font-family:'Unbounded',sans-serif;flex-shrink:0">{{ r.user.first_name|first|upper }}</div>
+          <div><div style="font-weight:700;font-size:13px">{{ r.user.first_name }}</div><div style="font-size:11px;color:var(--gray)">{{ r.created_at|date:"d.m.Y" }}</div></div>
+        </div>
+        <div class="stars" style="margin-bottom:8px">{% for i in '12345' %}{% if forloop.counter <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</div>
+        <p style="font-size:13px;color:var(--gray);line-height:1.6">{{ r.text }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% empty %}
+  <div style="text-align:center;padding:60px;color:var(--gray)"><div style="font-size:48px">💬</div><p style="margin-top:12px">Отзывов пока нет</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

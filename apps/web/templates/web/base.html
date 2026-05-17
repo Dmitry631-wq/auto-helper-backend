@@ -1,0 +1,188 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Авто-помощник Абакан{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--beige:#C4A882;--beige-light:#F5F0EB;--beige-mid:#E8DECE;--red:#E53935;--dark:#1A1A1A;--gray:#6B6B6B;--white:#fff;--card:#FDFAF7;--shadow:0 8px 32px rgba(196,168,130,.18);--nav-h:68px}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+body{font-family:'Nunito',sans-serif;background:var(--beige-light);color:var(--dark);overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;padding:0 5vw;background:rgba(245,240,235,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(196,168,130,.2)}
+.nav-logo{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:800;color:var(--dark)}
+.nav-logo span{color:var(--beige)}
+.nav-links{display:flex;gap:20px;list-style:none}
+.nav-links a{font-size:13px;font-weight:600;color:var(--gray);transition:.2s}
+.nav-links a:hover,.nav-links a.active{color:var(--dark)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.btn-nav{background:var(--dark);color:#fff;border:none;border-radius:30px;padding:8px 18px;font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:.2s;white-space:nowrap;display:inline-block}
+.btn-nav:hover{background:var(--beige)}
+.btn-nav-outline{background:transparent;border:2px solid var(--beige-mid);color:var(--dark);border-radius:30px;padding:7px 16px;font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;display:inline-block;transition:.2s}
+.btn-nav-outline:hover{border-color:var(--beige);background:var(--beige);color:#fff}
+.uav{width:35px;height:35px;border-radius:50%;background:var(--beige);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;font-weight:700;font-family:'Unbounded',sans-serif;color:#fff;position:relative}
+.udrop{position:absolute;top:calc(100% + 8px);right:0;background:var(--card);border:1px solid var(--beige-mid);border-radius:14px;padding:7px;min-width:180px;box-shadow:var(--shadow);display:none;z-index:300}
+.uav:hover .udrop{display:block}
+.ditem{display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:9px;font-size:13px;font-weight:600;transition:.15s;color:var(--dark)}
+.ditem:hover{background:var(--beige-mid)}
+.ditem.red{color:var(--red)}
+/* MAIN */
+main{padding-top:var(--nav-h);min-height:100vh}
+/* PAGE HEADER */
+.page-header{padding:32px 5vw 24px;border-bottom:1px solid var(--beige-mid)}
+.page-header h1{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px}
+.page-header p{color:var(--gray);font-size:14px}
+/* SECTIONS */
+.section{padding:60px 5vw}
+.stag{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;color:var(--beige);text-transform:uppercase;margin-bottom:12px}
+.stitle{font-family:'Unbounded',sans-serif;font-size:clamp(22px,3.5vw,36px);font-weight:800;letter-spacing:-1px;margin-bottom:14px;line-height:1.15}
+.ssub{font-size:16px;color:var(--gray);line-height:1.6;max-width:520px}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--beige-mid);border-radius:18px;padding:24px;transition:.25s}
+.card:hover{box-shadow:var(--shadow);border-color:var(--beige)}
+/* GRID */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+/* FORMS */
+.form-card{background:var(--card);border:1px solid var(--beige-mid);border-radius:20px;padding:36px;max-width:480px;margin:0 auto}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--gray);margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase}
+.fg input,.fg select,.fg textarea{width:100%;padding:11px 14px;border-radius:11px;border:1.5px solid var(--beige-mid);background:var(--beige-light);font-family:'Nunito',sans-serif;font-size:14px;color:var(--dark);outline:none;transition:.2s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--beige);box-shadow:0 0 0 3px rgba(196,168,130,.15)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 28px;border-radius:50px;border:none;cursor:pointer;font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;transition:.2s;width:100%}
+.btn-dark{background:var(--dark);color:#fff}.btn-dark:hover{background:var(--beige)}
+.btn-outline{background:transparent;border:2px solid var(--beige-mid);color:var(--dark)}.btn-outline:hover{border-color:var(--beige)}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{opacity:.9}
+.btn-sm{padding:8px 18px;font-size:11px;width:auto}
+/* BADGES */
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.badge-service{background:rgba(196,168,130,.15);color:#7A6045}
+.badge-evacuator{background:rgba(229,57,53,.1);color:var(--red)}
+.badge-parts{background:rgba(76,175,80,.1);color:#2E7D32}
+/* ALERTS */
+.messages{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;flex-direction:column;gap:8px;align-items:center}
+.alert{padding:12px 22px;border-radius:50px;font-size:13px;font-weight:600;white-space:nowrap;animation:fadeUp .3s ease;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.alert-success{background:#2E7D32;color:#fff}
+.alert-error{background:var(--red);color:#fff}
+.alert-info{background:var(--dark);color:#fff}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+/* STARS */
+.stars{color:#F59E0B;font-size:14px}
+.star-pick{display:flex;gap:6px;font-size:28px;cursor:pointer}
+.star-pick span{color:var(--beige-mid);transition:.15s}
+.star-pick span.on{color:#F59E0B}
+/* FOOTER */
+footer{background:var(--dark);color:rgba(255,255,255,.55);padding:40px 5vw 24px}
+.footer-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:32px;margin-bottom:32px}
+.footer-logo{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:800;color:#fff;margin-bottom:8px}
+.footer-logo span{color:var(--beige)}
+.footer-desc{font-size:13px;line-height:1.7;max-width:240px}
+.footer-col h4{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;color:#fff;margin-bottom:12px}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+.footer-col a{color:rgba(255,255,255,.45);font-size:13px;transition:.2s}
+.footer-col a:hover{color:var(--beige)}
+.footer-bottom{display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,.08);padding-top:18px;font-size:12px;flex-wrap:wrap;gap:8px}
+/* ORG CARD */
+.org-ic{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;margin-bottom:12px;font-family:'Unbounded',sans-serif;font-weight:800;font-size:13px;color:#fff}
+.org-name{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;margin-bottom:4px}
+.org-meta{font-size:12px;color:var(--gray);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap}
+.org-btns{display:flex;gap:7px;margin-top:12px}
+.org-btn{flex:1;padding:8px;border-radius:30px;border:none;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;text-align:center;display:inline-block}
+.obc{background:var(--dark);color:#fff}.obc:hover{background:var(--beige)}
+.obr{background:var(--beige-mid);color:var(--dark)}.obr:hover{background:var(--beige);color:#fff}
+/* TO ITEMS */
+.to-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:10px;background:var(--beige-light);font-size:12px;margin-bottom:6px}
+.to-badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px}
+.to-ok{background:rgba(76,175,80,.12);color:#2E7D32}
+.to-warn{background:rgba(255,152,0,.12);color:#E65100}
+.to-due{background:rgba(229,57,53,.12);color:var(--red)}
+/* RESPONSIVE */
+@media(max-width:768px){.nav-links{display:none}.footer-inner{flex-direction:column}}
+@media(max-width:480px){.nav-logo{font-size:13px}.btn-nav{padding:7px 12px;font-size:10px}}
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if messages %}
+<div class="messages" id="msgBox">
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+</div>
+<script>setTimeout(()=>{const b=document.getElementById('msgBox');if(b)b.style.display='none'},4000)</script>
+{% endif %}
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="{% url 'web:home' %}">Авто<span>-помощник</span></a>
+  <ul class="nav-links">
+    <li><a href="{% url 'web:home' %}" {% if request.resolver_match.url_name == 'home' %}class="active"{% endif %}>Главная</a></li>
+    <li><a href="{% url 'web:catalog' %}" {% if 'catalog' in request.resolver_match.url_name %}class="active"{% endif %}>Организации</a></li>
+    <li><a href="{% url 'web:reviews' %}" {% if request.resolver_match.url_name == 'reviews' %}class="active"{% endif %}>Отзывы</a></li>
+    <li><a href="{% url 'web:faq' %}" {% if request.resolver_match.url_name == 'faq' %}class="active"{% endif %}>FAQ</a></li>
+    {% if user.is_authenticated %}
+    <li><a href="{% url 'web:garage' %}" {% if request.resolver_match.url_name == 'garage' %}class="active"{% endif %}>Гараж</a></li>
+    {% endif %}
+  </ul>
+  <div class="nav-right">
+    {% if user.is_authenticated %}
+    <div class="uav">
+      {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+      <div class="udrop">
+        <a class="ditem" href="{% url 'web:profile' %}">👤 Профиль</a>
+        <a class="ditem" href="{% url 'web:garage' %}">🚗 Мой гараж</a>
+        <a class="ditem" href="{% url 'web:edit_profile' %}">⚙️ Настройки</a>
+        <hr style="border:none;border-top:1px solid var(--beige-mid);margin:5px 0">
+        <a class="ditem red" href="{% url 'web:logout' %}">🚪 Выйти</a>
+      </div>
+    </div>
+    {% else %}
+    <a class="btn-nav-outline" href="{% url 'web:register' %}">Регистрация</a>
+    <a class="btn-nav" href="{% url 'web:login' %}">Войти</a>
+    {% endif %}
+  </div>
+</nav>
+
+<main>
+{% block content %}{% endblock %}
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">Авто<span>-помощник</span></div>
+      <p class="footer-desc">Мобильное приложение для автовладельцев Абакана.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Навигация</h4>
+      <ul>
+        <li><a href="{% url 'web:catalog' %}">Организации</a></li>
+        <li><a href="{% url 'web:reviews' %}">Отзывы</a></li>
+        <li><a href="{% url 'web:faq' %}">FAQ</a></li>
+        {% if user.is_authenticated %}<li><a href="{% url 'web:garage' %}">Гараж</a></li>{% endif %}
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Контакты</h4>
+      <ul>
+        <li><a href="mailto:mikshindima89@gmail.com">mikshindima89@gmail.com</a></li>
+        <li><a>Абакан, Республика Хакасия</a></li>
+        <li><a href="https://auto-helper-abakan.online">auto-helper-abakan.online</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Авто-помощник Абакан</span>
+    <span>Сделано для жителей Абакана 🚗</span>
+  </div>
+</footer>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,24 @@
+{% extends 'web/base.html' %}
+{% block title %}Редактировать профиль — Авто-помощник{% endblock %}
+{% block content %}
+<div style="padding:60px 5vw;display:flex;justify-content:center">
+<div class="form-card" style="width:100%">
+  <h2 style="font-family:'Unbounded',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px">Редактировать профиль</h2>
+  <p style="font-size:13px;color:var(--gray);margin-bottom:24px">Обновите ваши данные</p>
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="fg"><label>Имя</label><input type="text" name="first_name" value="{{ user.first_name }}" required></div>
+      <div class="fg"><label>Фамилия</label><input type="text" name="last_name" value="{{ user.last_name }}"></div>
+    </div>
+    <div style="border-top:1px solid var(--beige-mid);margin:14px 0;padding-top:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--gray);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">Смена пароля (необязательно)</div>
+      <div class="fg"><label>Текущий пароль</label><input type="password" name="old_password" placeholder="Введите текущий пароль"></div>
+      <div class="fg"><label>Новый пароль</label><input type="password" name="new_password" placeholder="Минимум 6 символов"></div>
+    </div>
+    <button type="submit" class="btn btn-dark">Сохранить</button>
+  </form>
+  <a href="{% url 'web:profile' %}" style="display:block;text-align:center;margin-top:12px;font-size:13px;color:var(--gray)">← Назад</a>
+</div>
+</div>
+{% endblock %}

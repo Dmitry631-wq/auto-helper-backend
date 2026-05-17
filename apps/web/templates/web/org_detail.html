@@ -1,0 +1,107 @@
+{% extends 'web/base.html' %}
+{% block title %}{{ org.name }} — Авто-помощник Абакан{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div class="org-ic" style="background:{{ org.logo_color }};width:56px;height:56px;font-size:16px">{{ org.logo_text }}</div>
+    <div>
+      <h1 style="margin-bottom:4px">{{ org.name }}</h1>
+      <span class="badge badge-{{ org.org_type }}">{{ org.org_type_display }}</span>
+    </div>
+  </div>
+</div>
+<div style="padding:24px 5vw 40px;display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start" class="org-layout">
+  <!-- LEFT -->
+  <div>
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;margin-bottom:16px">📋 Информация</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
+        <div style="display:flex;gap:10px"><span>📌</span><span>{{ org.address }}</span></div>
+        <div style="display:flex;gap:10px"><span>📞</span><a href="tel:{{ org.phone }}" style="color:var(--beige);font-weight:700">{{ org.phone }}</a></div>
+        <div style="display:flex;gap:10px"><span>🕐</span><span>{{ org.work_hours }}</span></div>
+        {% if org.distance_km %}<div style="display:flex;gap:10px"><span>📍</span><span>{{ org.distance_km }} км от центра</span></div>{% endif %}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+        <a href="tel:{{ org.phone }}" class="btn btn-dark btn-sm" style="width:auto">📞 Позвонить</a>
+        <a href="https://2gis.ru/abakan/search/{{ org.address|urlencode }}" target="_blank" class="btn btn-outline btn-sm" style="width:auto">🗺️ Маршрут в 2ГИС</a>
+      </div>
+    </div>
+    {% if services %}
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;margin-bottom:14px">🔧 Услуги</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        {% for s in services %}<span style="background:var(--beige-mid);color:#7A6045;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600">{{ s }}</span>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    <!-- REVIEWS -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <h3 style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700">⭐ Отзывы {% if avg %}({{ avg }}★){% endif %}</h3>
+        {% if user.is_authenticated and not user_review %}<a href="#write-review" class="btn btn-dark btn-sm" style="width:auto">+ Написать</a>{% endif %}
+      </div>
+      {% if reviews %}
+        {% for r in reviews %}
+        <div style="border-bottom:1px solid var(--beige-mid);padding:14px 0;{% if forloop.last %}border-bottom:none{% endif %}">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--beige);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:700;font-family:'Unbounded',sans-serif;flex-shrink:0">{{ r.user.first_name|first|upper }}</div>
+            <div>
+              <div style="font-weight:700;font-size:13px">{{ r.user.first_name }} {{ r.user.last_name }}</div>
+              <div style="font-size:11px;color:var(--gray)">{{ r.created_at|date:"d.m.Y" }}</div>
+            </div>
+            {% if user.is_authenticated and r.user == user %}
+            <form method="post" action="{% url 'web:delete_review' r.pk %}" style="margin-left:auto">{% csrf_token %}<button type="submit" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;font-weight:700">Удалить</button></form>
+            {% endif %}
+          </div>
+          <div class="stars">{% for i in '12345' %}{% if forloop.counter <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</div>
+          {% if r.text %}<p style="font-size:13px;color:var(--gray);line-height:1.6;margin-top:6px">{{ r.text }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <p style="color:var(--gray);font-size:14px">Отзывов пока нет. Будьте первым!</p>
+      {% endif %}
+      <!-- Write review form -->
+      {% if user.is_authenticated %}
+      <div id="write-review" style="margin-top:20px;padding-top:20px;border-top:1px solid var(--beige-mid)">
+        <h4 style="font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;margin-bottom:14px">{% if user_review %}Редактировать отзыв{% else %}Написать отзыв{% endif %}</h4>
+        <form method="post" action="{% url 'web:add_review' org.pk %}">
+          {% csrf_token %}
+          <div class="fg">
+            <label>Оценка</label>
+            <div class="star-pick" id="rStars">
+              {% for i in '12345' %}<span onclick="setRStar({{ i }})" data-val="{{ i }}" {% if user_review and forloop.counter <= user_review.rating %}class="on"{% endif %}>★</span>{% endfor %}
+            </div>
+            <input type="hidden" name="rating" id="ratingVal" value="{% if user_review %}{{ user_review.rating }}{% else %}0{% endif %}">
+          </div>
+          <div class="fg"><label>Комментарий</label><textarea name="text" rows="3" placeholder="Расскажите о вашем опыте...">{% if user_review %}{{ user_review.text }}{% endif %}</textarea></div>
+          <button type="submit" class="btn btn-dark btn-sm" style="width:auto">Отправить</button>
+        </form>
+      </div>
+      {% else %}
+      <div style="margin-top:16px;padding:14px;background:var(--beige-light);border-radius:12px;text-align:center">
+        <p style="font-size:13px;color:var(--gray);margin-bottom:10px">Войдите чтобы оставить отзыв</p>
+        <a href="{% url 'web:login' %}?next={{ request.path }}" class="btn btn-dark btn-sm" style="width:auto">Войти</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <!-- RIGHT -->
+  <div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:40px;margin-bottom:8px">{% if org.org_type == 'evacuator' %}🚛{% elif org.org_type == 'parts' %}🛒{% else %}🔧{% endif %}</div>
+      <div style="font-family:'Unbounded',sans-serif;font-size:28px;font-weight:800;margin-bottom:4px">{{ org.rating }}★</div>
+      <div style="font-size:13px;color:var(--gray);margin-bottom:16px">{{ org.reviews_count }} отзывов</div>
+      <a href="tel:{{ org.phone }}" class="btn btn-dark">📞 {{ org.phone }}</a>
+    </div>
+  </div>
+</div>
+<style>@media(max-width:768px){.org-layout{grid-template-columns:1fr!important}}</style>
+{% endblock %}
+{% block extra_js %}
+<script>
+function setRStar(n){
+  document.getElementById('ratingVal').value=n;
+  document.querySelectorAll('#rStars span').forEach((s,i)=>s.classList.toggle('on',i<n));
+}
+</script>
+{% endblock %}

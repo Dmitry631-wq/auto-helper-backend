@@ -1,0 +1,169 @@
+{% extends 'web/base.html' %}
+{% block title %}Мой гараж — Авто-помощник{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+    <div><h1>Мой гараж</h1><p>Управляйте автомобилями и следите за ТО</p></div>
+    <button onclick="document.getElementById('addCarModal').style.display='flex'" class="btn-nav">+ Добавить авто</button>
+  </div>
+</div>
+<div style="padding:24px 5vw 40px">
+  {% if cars %}
+  <div class="grid-2">
+    {% for car in cars %}
+    <div class="card">
+      <div style="font-size:38px;margin-bottom:11px">🚗</div>
+      <div style="font-family:'Unbounded',sans-serif;font-size:15px;font-weight:800">{{ car.make }} {{ car.model }}</div>
+      <div style="font-size:13px;color:var(--gray);margin-bottom:14px">{{ car.year }} · {{ car.mileage|default:0 }} км · {{ car.engine_type|default:'Бензин' }}</div>
+      <!-- TO items -->
+      <div id="to-{{ car.pk }}"></div>
+      <div style="display:flex;gap:7px;margin-top:14px">
+        <a href="{% url 'web:edit_car' car.pk %}" class="btn btn-outline btn-sm" style="flex:1">✏️ Редактировать</a>
+        <form method="post" action="{% url 'web:delete_car' car.pk %}" style="flex:1">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-red btn-sm" style="width:100%" onclick="return confirm('Удалить {{ car.make }} {{ car.model }}?')">🗑️ Удалить</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:60px;color:var(--gray)">
+    <div style="font-size:54px;margin-bottom:14px">🚗</div>
+    <p style="font-size:15px;font-weight:700;margin-bottom:6px">Гараж пуст</p>
+    <p style="font-size:14px">Добавьте свой первый автомобиль</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ADD CAR MODAL -->
+<div id="addCarModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px;overflow-y:auto" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--card);border-radius:22px;padding:32px;width:min(440px,94vw);position:relative;max-height:88vh;overflow-y:auto">
+    <button onclick="document.getElementById('addCarModal').style.display='none'" style="position:absolute;top:13px;right:15px;font-size:21px;cursor:pointer;color:var(--gray);background:none;border:none">✕</button>
+    <h2 style="font-family:'Unbounded',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px">Добавить автомобиль</h2>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:20px">Заполните данные вашего авто</p>
+    <form method="post" action="{% url 'web:add_car' %}">
+      {% csrf_token %}
+      <div class="fg"><label>Марка</label>
+        <div style="position:relative">
+          <input type="text" id="makeSearchG" placeholder="Поиск марки..." oninput="filterMakesG()" onfocus="showMakeDDG()" autocomplete="off">
+          <div id="makeDDG" style="display:none;position:absolute;z-index:999;background:var(--card);border:1.5px solid var(--beige);border-radius:12px;max-height:200px;overflow-y:auto;width:100%;margin-top:2px;box-shadow:var(--shadow)"></div>
+          <input type="hidden" name="make" id="makeValG">
+        </div>
+      </div>
+      <div class="fg"><label>Модель</label>
+        <div style="position:relative">
+          <input type="text" id="modelSearchG" placeholder="Сначала выберите марку..." oninput="filterModelsG()" onfocus="showModelDDG()" autocomplete="off" disabled>
+          <div id="modelDDG" style="display:none;position:absolute;z-index:999;background:var(--card);border:1.5px solid var(--beige);border-radius:12px;max-height:200px;overflow-y:auto;width:100%;margin-top:2px;box-shadow:var(--shadow)"></div>
+          <input type="hidden" name="model" id="modelValG">
+        </div>
+      </div>
+      <div class="fg"><label>Год выпуска</label><select name="year" id="yearSelG"></select></div>
+      <div class="fg"><label>Пробег (км)</label><input type="number" name="mileage" placeholder="87000"></div>
+      <div class="fg"><label>Двигатель</label><select name="engine_type"><option>Бензин</option><option>Дизель</option><option>Гибрид</option><option>Электро</option></select></div>
+      <div class="fg"><label>Дата последнего ТО</label><input type="date" name="last_to_date"></div>
+      <button type="submit" class="btn btn-dark" style="margin-top:6px">Добавить</button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Car makes/models (abbreviated for garage)
+const MAKES_G = {{ makes_json|safe }};
+let selMakeG='', selModelG='';
+
+function fillYearsG(){
+  const s=document.getElementById('yearSelG');s.innerHTML='';
+  for(let y=2026;y>=1980;y--){const o=document.createElement('option');o.value=y;o.textContent=y;s.appendChild(o);}
+}
+fillYearsG();
+
+function filterMakesG(){
+  const q=document.getElementById('makeSearchG').value.toLowerCase();
+  const makes=Object.keys(MAKES_G).sort();
+  const f=q?makes.filter(m=>m.toLowerCase().includes(q)):makes;
+  renderMakeDDG(f);document.getElementById('makeDDG').style.display='';
+}
+function showMakeDDG(){
+  const q=document.getElementById('makeSearchG').value.toLowerCase();
+  const makes=Object.keys(MAKES_G).sort();
+  renderMakeDDG(q?makes.filter(m=>m.toLowerCase().includes(q)):makes);
+  document.getElementById('makeDDG').style.display='';
+}
+function renderMakeDDG(makes){
+  const dd=document.getElementById('makeDDG');
+  dd.innerHTML=makes.slice(0,50).map(m=>`<div style="padding:9px 13px;cursor:pointer;font-size:13px;border-radius:8px;margin:2px;transition:.15s" onmouseover="this.style.background='var(--beige)';this.style.color='#fff'" onmouseout="this.style.background='';this.style.color=''" onclick="selectMakeG('${m.replace(/'/g,"\\'")}')"><b>${m}</b></div>`).join('')||'<div style="padding:10px 13px;font-size:13px;color:var(--gray)">Ничего не найдено</div>';
+}
+function selectMakeG(make){
+  selMakeG=make;selModelG='';
+  document.getElementById('makeSearchG').value=make;
+  document.getElementById('makeValG').value=make;
+  document.getElementById('makeDDG').style.display='none';
+  const ms=document.getElementById('modelSearchG');
+  ms.disabled=false;ms.value='';ms.placeholder='Поиск модели '+make+'...';
+  document.getElementById('modelValG').value='';
+}
+function filterModelsG(){
+  if(!selMakeG)return;
+  const q=document.getElementById('modelSearchG').value.toLowerCase();
+  const models=MAKES_G[selMakeG]||[];
+  renderModelDDG(q?models.filter(m=>m.toLowerCase().includes(q)):models);
+  document.getElementById('modelDDG').style.display='';
+}
+function showModelDDG(){
+  if(!selMakeG){alert('Сначала выберите марку');return;}
+  filterModelsG();
+}
+function renderModelDDG(models){
+  const dd=document.getElementById('modelDDG');
+  dd.innerHTML=models.map(m=>`<div style="padding:9px 13px;cursor:pointer;font-size:13px;border-radius:8px;margin:2px;transition:.15s" onmouseover="this.style.background='var(--beige)';this.style.color='#fff'" onmouseout="this.style.background='';this.style.color=''" onclick="selectModelG('${m.replace(/'/g,"\\'")}')"><b>${m}</b></div>`).join('')||'<div style="padding:10px 13px;font-size:13px;color:var(--gray)">Ничего не найдено</div>';
+}
+function selectModelG(model){
+  selModelG=model;
+  document.getElementById('modelSearchG').value=model;
+  document.getElementById('modelValG').value=model;
+  document.getElementById('modelDDG').style.display='none';
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#addCarModal')){
+    document.getElementById('makeDDG').style.display='none';
+    document.getElementById('modelDDG').style.display='none';
+  }
+});
+
+// TO calculation
+const BRAND_INTERVALS={
+  'Toyota':{oil:10000,cabin:15000,spark:30000,belt:90000,brake:40000},
+  'Lada (ВАЗ)':{oil:7500,cabin:10000,spark:15000,belt:60000,brake:30000},
+  'BMW':{oil:15000,cabin:20000,spark:40000,belt:0,brake:50000},
+  'Mercedes-Benz':{oil:15000,cabin:20000,spark:40000,belt:0,brake:50000},
+  'Audi':{oil:15000,cabin:20000,spark:40000,belt:0,brake:50000},
+  'Volkswagen':{oil:15000,cabin:20000,spark:30000,belt:90000,brake:50000},
+  'Hyundai':{oil:10000,cabin:15000,spark:30000,belt:90000,brake:40000},
+  'Kia':{oil:10000,cabin:15000,spark:30000,belt:90000,brake:40000},
+  'Renault':{oil:10000,cabin:15000,spark:30000,belt:60000,brake:40000},
+  'default':{oil:10000,cabin:15000,spark:30000,belt:90000,brake:40000},
+};
+const TO_NAMES={oil:'🛢️ Масло моторное',cabin:'🔩 Фильтр салона',spark:'⚡ Свечи зажигания',belt:'🔧 Ремень ГРМ',brake:'🛑 Тормозные колодки'};
+
+{% for car in cars %}
+(function(){
+  const make='{{ car.make }}';
+  const mileage={{ car.mileage|default:0 }};
+  const b=Object.keys(BRAND_INTERVALS).find(k=>make.startsWith(k));
+  const iv=BRAND_INTERVALS[b]||BRAND_INTERVALS.default;
+  const html=Object.entries(iv).filter(([k,v])=>v>0).map(([k,v])=>{
+    const rem=v-(mileage%v);
+    const cls=rem<1000?'to-due':rem<3000?'to-warn':'to-ok';
+    const lbl=rem<1000?'Замените':rem<3000?'Скоро':'Хорошо';
+    const km=rem<1000?'просрочено':`ещё ${rem.toLocaleString()} км`;
+    return `<div class="to-row"><span style="font-weight:600">${TO_NAMES[k]}</span><div style="text-align:right"><div class="to-badge ${cls}">${lbl}</div><div style="font-size:11px;color:var(--gray);margin-top:1px">${km}</div></div></div>`;
+  }).join('');
+  document.getElementById('to-{{ car.pk }}').innerHTML=html;
+})();
+{% endfor %}
+</script>
+{% endblock %}
