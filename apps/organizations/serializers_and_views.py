@@ -237,10 +237,10 @@ class AppRatingView(APIView):
             'count':  AppRating.objects.count(),
         })
     def delete(self, request):
-    from apps.web.models import AppRating
-    try:
-        rating = AppRating.objects.get(user=request.user)
-        rating.delete()
-        return Response({'detail': 'Оценка удалена'})
-    except AppRating.DoesNotExist:
-        return Response({'detail': 'Оценка не найдена'}, status=404)
+        from apps.web.models import AppRating
+        try:
+            rating = AppRating.objects.get(user=request.user)
+            rating.delete()
+            return Response({'detail': 'Оценка удалена'})
+        except AppRating.DoesNotExist:
+            return Response({'detail': 'Оценка не найдена'}, status=404)
