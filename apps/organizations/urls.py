@@ -1,7 +1,7 @@
 from django.urls import path
 from .serializers_and_views import (
     OrganizationListView, OrganizationDetailView,
-    FavoriteListView, FavoriteToggleView, ReviewListCreateView,ReviewDetailView
+    FavoriteListView, FavoriteToggleView, ReviewListCreateView,ReviewDetailView,AppRatingView
 )
 
 urlpatterns = [
@@ -11,4 +11,5 @@ urlpatterns = [
     path('<int:org_id>/favorite/', FavoriteToggleView.as_view()),
     path('<int:org_id>/reviews/',  ReviewListCreateView.as_view()),
     path('<int:org_id>/reviews/<int:review_id>/',  ReviewDetailView.as_view()),
+    path('app-rating/', AppRatingView.as_view()),
 ]
