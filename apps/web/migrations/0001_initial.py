@@ -1,34 +1,19 @@
-from django.db import migrations, models
-import django.db.models.deletion
+from django.db import models
 
 
-class Migration(migrations.Migration):
+class AppRating(models.Model):
+    user = models.ForeignKey(
+        'users.User', on_delete=models.CASCADE,
+        related_name='app_ratings', verbose_name='Пользователь'
+    )
+    stars = models.PositiveSmallIntegerField('Оценка')
+    comment = models.TextField('Комментарий', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    initial = True
+    class Meta:
+        verbose_name = 'Оценка приложения'
+        verbose_name_plural = 'Оценки приложения'
+        unique_together = ('user',)
 
-    dependencies = [
-        ('users', '0001_initial'),
-    ]
-
-    operations = [
-        migrations.CreateModel(
-            name='AppRating',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True)),
-                ('stars', models.PositiveSmallIntegerField(verbose_name='Оценка')),
-                ('comment', models.TextField(blank=True, verbose_name='Комментарий')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(
-                    on_delete=django.db.models.deletion.CASCADE,
-                    related_name='app_ratings',
-                    to='users.user',
-                    verbose_name='Пользователь'
-                )),
-            ],
-            options={
-                'verbose_name': 'Оценка приложения',
-                'verbose_name_plural': 'Оценки приложения',
-                'unique_together': {('user',)},
-            },
-        ),
-    ]
+    def __str__(self):
+        return f'{self.user} — {self.stars}★'
