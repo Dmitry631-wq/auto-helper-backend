@@ -188,7 +188,7 @@ class AppRatingView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
-        if self.request.method == 'POST':
+        if self.request.method in ('POST', 'DELETE'):
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
 
@@ -236,3 +236,11 @@ class AppRatingView(APIView):
             'avg':    round(avg, 1) if avg else stars,
             'count':  AppRating.objects.count(),
         })
+    def delete(self, request):
+    from apps.web.models import AppRating
+    try:
+        rating = AppRating.objects.get(user=request.user)
+        rating.delete()
+        return Response({'detail': 'Оценка удалена'})
+    except AppRating.DoesNotExist:
+        return Response({'detail': 'Оценка не найдена'}, status=404)
