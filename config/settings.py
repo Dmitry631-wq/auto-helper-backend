@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'apps.services',
     'apps.organizations',
     'apps.garage',
+    'apps.web',
 ]
 
 MIDDLEWARE = [
