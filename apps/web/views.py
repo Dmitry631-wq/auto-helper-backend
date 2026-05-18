@@ -8,7 +8,7 @@ from django.db.models import Avg, Count
 from django.utils import timezone
 
 from apps.organizations.models import Organization, Review
-from apps.garage.models import Car
+from apps.garage.models import Vehicle
 from apps.users.models import User
 from .models import AppRating
 
