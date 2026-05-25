@@ -1,0 +1,155 @@
+{% extends 'web/base.html' %}
+{% block title %}Авто-помощник Абакан — найди автосервис, вызови эвакуатор{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div style="min-height:calc(100vh - var(--nav-h));display:flex;align-items:center;padding:60px 5vw;background:linear-gradient(135deg,#F5F0EB 0%,#EDE4D8 60%,#E0D0BB 100%);position:relative;overflow:hidden;gap:60px;flex-wrap:wrap">
+  <div style="flex:1;min-width:280px;max-width:560px">
+    <span style="display:inline-block;background:rgba(196,168,130,.2);border:1px solid var(--beige);color:#7A6045;font-size:11px;font-weight:700;letter-spacing:1px;padding:5px 14px;border-radius:30px;margin-bottom:22px;text-transform:uppercase">📍 Абакан, Республика Хакасия</span>
+    <h1 style="font-family:'Unbounded',sans-serif;font-size:clamp(26px,5vw,52px);font-weight:800;line-height:1.1;letter-spacing:-1.5px;margin-bottom:18px">Авто-<span style="color:var(--beige)">помощник</span><br>Абакан</h1>
+    <p style="font-size:17px;color:var(--gray);line-height:1.65;margin-bottom:32px;max-width:440px">Найди автосервис, вызови эвакуатор и следи за состоянием своего автомобиля — всё в одном приложении.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <a href="https://github.com/Dmitry631-wq/auto-helper-abakan/releases/download/v1.0.0/app-release.apk" class="btn btn-dark" style="width:auto;padding:14px 26px">⬇ Скачать APK</a>
+      <a href="{% url 'web:catalog' %}" class="btn btn-outline" style="width:auto;padding:12px 22px">Смотреть организации →</a>
+    </div>
+    <div style="display:flex;gap:32px;margin-top:36px;flex-wrap:wrap">
+      <div><div style="font-family:'Unbounded',sans-serif;font-size:26px;font-weight:800">{{ orgs_count }}</div><div style="font-size:12px;color:var(--gray);margin-top:3px">организаций</div></div>
+      <div><div style="font-family:'Unbounded',sans-serif;font-size:26px;font-weight:800">{{ reviews_count }}</div><div style="font-size:12px;color:var(--gray);margin-top:3px">отзывов</div></div>
+      <div style="cursor:pointer" onclick="document.getElementById('rateModal').style.display='flex'" title="Оценить приложение">
+        <div style="font-family:'Unbounded',sans-serif;font-size:26px;font-weight:800">{% if app_rating %}{{ app_rating }}★{% else %}—{% endif %}</div>
+        <div style="font-size:12px;color:var(--gray);margin-top:3px">рейтинг приложения ⭐</div>
+      </div>
+    </div>
+  </div>
+  <!-- Phone mockup -->
+  <div style="flex:0 0 auto">
+    <div style="width:240px;height:480px;background:var(--dark);border-radius:40px;padding:12px;box-shadow:0 40px 80px rgba(0,0,0,.25);transform:rotate(3deg);transition:transform .4s" onmouseover="this.style.transform='rotate(0deg) scale(1.02)'" onmouseout="this.style.transform='rotate(3deg)'">
+      <div style="width:100%;height:100%;background:linear-gradient(160deg,#1E1E1E,#2A2520);border-radius:30px;overflow:hidden;display:flex;flex-direction:column">
+        <div style="display:flex;justify-content:space-between;padding:12px 18px 4px;font-size:10px;color:#888"><span>9:41</span><span>🔋</span></div>
+        <div style="padding:8px 16px;display:flex;align-items:center;gap:8px">
+          <div style="width:32px;height:32px;border-radius:9px;background:var(--beige);display:flex;align-items:center;justify-content:center;font-size:16px">🚗</div>
+          <div><div style="color:#fff;font-size:13px;font-weight:700">Авто-помощник</div><div style="color:#888;font-size:10px">Абакан</div></div>
+        </div>
+        <div style="flex:1;background:linear-gradient(135deg,#2A2520,#1A1710);margin:0 12px;border-radius:14px;position:relative;overflow:hidden">
+          <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(196,168,130,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(196,168,130,.07) 1px,transparent 1px);background-size:28px 28px"></div>
+          {% for org in top_orgs %}
+          <div style="position:absolute;width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:{% if org.org_type == 'evacuator' %}var(--red){% elif org.org_type == 'parts' %}#4CAF50{% else %}var(--beige){% endif %};display:flex;align-items:center;justify-content:center;font-size:9px;top:{% cycle '28%' '50%' '65%' %};left:{% cycle '28%' '54%' '18%' %}"><span style="transform:rotate(45deg)">{% if org.org_type == 'evacuator' %}🚨{% elif org.org_type == 'parts' %}🛒{% else %}🔧{% endif %}</span></div>
+          {% endfor %}
+        </div>
+        <div style="display:flex;justify-content:space-around;padding:8px 8px 12px;background:rgba(28,24,20,.95);border-top:1px solid rgba(255,255,255,.06);margin:6px 6px 0;border-radius:0 0 24px 24px">
+          {% for tab in '🏠,🗺️,🚨,🚗'|make_list %}{% endfor %}
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:8px;color:#888"><div style="font-size:16px">🏠</div><div>Главная</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:8px;color:var(--beige)"><div style="font-size:16px">🗺️</div><div>Карта</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:8px;color:#888"><div style="font-size:16px">🚨</div><div>SOS</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:8px;color:#888"><div style="font-size:16px">🚗</div><div>Гараж</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="section" style="background:var(--white)">
+  <div class="stag">Возможности</div>
+  <h2 class="stitle">Всё что нужно автовладельцу</h2>
+  <div class="grid-3" style="margin-top:40px">
+    {% for feat in features %}
+    <div class="card"><div style="font-size:32px;margin-bottom:14px">{{ feat.icon }}</div><div style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;margin-bottom:8px">{{ feat.title }}</div><div style="font-size:13px;color:var(--gray);line-height:1.6">{{ feat.desc }}</div></div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="section">
+  <div style="text-align:center"><div class="stag">Как это работает</div><h2 class="stitle">Четыре простых шага</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:24px;margin-top:48px;text-align:center">
+    {% for step in steps %}
+    <div>
+      <div style="width:78px;height:78px;border-radius:50%;background:var(--white);border:3px solid var(--beige);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 18px;box-shadow:0 6px 20px rgba(196,168,130,.2)">{{ step.icon }}</div>
+      <div style="font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;margin-bottom:7px">{{ step.title }}</div>
+      <div style="font-size:13px;color:var(--gray);line-height:1.6">{{ step.desc }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- SOS -->
+<div style="background:linear-gradient(135deg,#1A1A1A,#2D2420);padding:60px 5vw">
+  <div style="display:flex;align-items:center;gap:60px;flex-wrap:wrap">
+    <div style="flex:1;min-width:280px">
+      <div style="font-family:'Unbounded',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;color:var(--red);text-transform:uppercase;margin-bottom:12px">Экстренная помощь</div>
+      <h2 style="font-family:'Unbounded',sans-serif;font-size:clamp(22px,3.5vw,36px);font-weight:800;color:#fff;margin-bottom:14px">Помощь в одно нажатие</h2>
+      <p style="color:rgba(255,255,255,.55);font-size:16px;line-height:1.6">Сломался? Попал в аварию? Вызови помощь мгновенно.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px">
+        {% for num,lbl in sos_numbers %}
+        <a href="tel:{{ num }}" style="background:rgba(229,57,53,.12);border:1px solid rgba(229,57,53,.3);border-radius:14px;padding:16px 22px;text-align:center;text-decoration:none;transition:.25s;display:block" onmouseover="this.style.background='rgba(229,57,53,.25)'" onmouseout="this.style.background='rgba(229,57,53,.12)'">
+          <div style="font-family:'Unbounded',sans-serif;font-size:22px;font-weight:800;color:var(--red)">{{ num }}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px">{{ lbl }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:230px">
+      <a href="{% url 'web:catalog' %}?type=evacuator" style="display:flex;align-items:center;gap:12px;border-radius:16px;padding:18px 22px;background:var(--red);color:#fff;font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;box-shadow:0 8px 24px rgba(229,57,53,.35);text-decoration:none">🚨 <div><div>Вызвать эвакуатор</div><div style="font-size:10px;font-weight:400;opacity:.7;margin-top:2px">Найти ближайший</div></div></a>
+      <a href="{% url 'web:catalog' %}?type=service" style="display:flex;align-items:center;gap:12px;border-radius:16px;padding:16px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;text-decoration:none">🔧 Техническая помощь</a>
+      <a href="{% url 'web:catalog' %}" style="display:flex;align-items:center;gap:12px;border-radius:16px;padding:16px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;text-decoration:none">📞 Найти организацию</a>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div style="background:linear-gradient(135deg,var(--beige) 0%,#A08060 100%);padding:80px 5vw;text-align:center">
+  <div style="font-family:'Unbounded',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;color:rgba(255,255,255,.7);text-transform:uppercase;margin-bottom:12px">Скачать бесплатно</div>
+  <h2 style="font-family:'Unbounded',sans-serif;font-size:clamp(22px,3.5vw,36px);font-weight:800;color:#fff;margin-bottom:14px">Скачайте приложение прямо сейчас</h2>
+  <p style="color:rgba(255,255,255,.8);font-size:16px;margin-bottom:32px">Бесплатно для Android. Только для жителей Абакана.</p>
+  <div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap">
+    <a href="https://github.com/Dmitry631-wq/auto-helper-abakan/releases/download/v1.0.0/app-release.apk" style="display:inline-flex;align-items:center;gap:10px;background:var(--dark);color:#fff;font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;padding:16px 30px;border-radius:50px;transition:.25s" onmouseover="this.style.background='#fff';this.style.color='var(--dark)'" onmouseout="this.style.background='var(--dark)';this.style.color='#fff'">⬇ Скачать APK</a>
+    <a href="{% url 'web:catalog' %}" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.4);color:#fff;font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;padding:14px 26px;border-radius:50px">Смотреть организации</a>
+  </div>
+</div>
+
+<!-- RATE APP MODAL -->
+<div id="rateModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--card);border-radius:22px;padding:36px;width:min(400px,94vw);text-align:center;position:relative">
+    <button onclick="document.getElementById('rateModal').style.display='none'" style="position:absolute;top:13px;right:15px;font-size:21px;cursor:pointer;color:var(--gray);background:none;border:none">✕</button>
+    <div style="font-size:48px;margin-bottom:8px">🚗</div>
+    <h2 style="font-family:'Unbounded',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px">Оцените приложение</h2>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:20px">Авто-помощник Абакан</p>
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'web:rate_app' %}">
+      {% csrf_token %}
+      <div class="star-pick" id="starPick" style="justify-content:center;margin-bottom:8px">
+        {% for i in '12345' %}<span onclick="setStar({{ i }})" data-val="{{ i }}">★</span>{% endfor %}
+      </div>
+      <input type="hidden" name="stars" id="starVal" value="0">
+      <div style="font-size:14px;color:var(--gray);margin-bottom:16px;min-height:20px" id="starLbl"></div>
+      <div class="fg" style="text-align:left"><label>Комментарий</label><textarea name="comment" rows="2" placeholder="Что понравилось?"></textarea></div>
+      <button type="submit" class="btn btn-dark">Отправить оценку</button>
+    </form>
+    {% else %}
+    <p style="font-size:14px;color:var(--gray);margin-bottom:20px">Войдите чтобы оценить приложение</p>
+    <a href="{% url 'web:login' %}" class="btn btn-dark">Войти</a>
+    {% endif %}
+    {% if app_rating %}
+    <div style="margin-top:16px;padding:12px;background:var(--beige-light);border-radius:12px">
+      <div style="font-size:13px;color:var(--gray);margin-bottom:4px">Текущий рейтинг</div>
+      <div style="font-size:28px;font-weight:800;font-family:'Unbounded',sans-serif">{{ app_rating }}★</div>
+      <div style="font-size:12px;color:var(--gray);margin-top:3px">{{ app_rating_count }} оценок</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const labels=['','Ужасно','Плохо','Нормально','Хорошо','Отлично!'];
+function setStar(n){
+  document.getElementById('starVal').value=n;
+  document.getElementById('starLbl').textContent=labels[n];
+  document.querySelectorAll('#starPick span').forEach((s,i)=>{s.classList.toggle('on',i<n);});
+}
+</script>
+{% endblock %}

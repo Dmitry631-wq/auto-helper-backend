@@ -1,0 +1,22 @@
+{% extends 'web/base.html' %}
+{% block title %}Вход — Авто-помощник{% endblock %}
+{% block content %}
+<div style="padding:60px 5vw;display:flex;align-items:center;justify-content:center;min-height:calc(100vh - var(--nav-h))">
+<div class="form-card" style="width:100%">
+  <h2 style="font-family:'Unbounded',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px">Вход</h2>
+  <p style="font-size:13px;color:var(--gray);margin-bottom:24px">Войдите в свой аккаунт</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="fg"><label>Email или телефон</label><input type="text" name="login" placeholder="ivan@mail.ru или +7 900..." required autofocus></div>
+    <div class="fg"><label>Пароль</label><input type="password" name="password" placeholder="••••••••" required></div>
+    <button type="submit" class="btn btn-dark">Войти</button>
+  </form>
+  <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--gray)">
+    <a href="{% url 'web:forgot_password' %}" style="color:var(--beige);font-weight:700">Забыли пароль?</a>
+  </div>
+  <div style="text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--beige-mid);font-size:13px;color:var(--gray)">
+    Нет аккаунта? <a href="{% url 'web:register' %}" style="color:var(--dark);font-weight:700">Зарегистрироваться</a>
+  </div>
+</div>
+</div>
+{% endblock %}

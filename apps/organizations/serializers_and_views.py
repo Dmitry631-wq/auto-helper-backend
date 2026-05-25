@@ -176,3 +176,71 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
             organization_id=self.kwargs['org_id'],
             user=self.request.user
         )
+# ═══════════════════════════════════════════════════════════════
+# ДОБАВЬ В КОНЕЦ файла apps/organizations/serializers_and_views.py
+# ═══════════════════════════════════════════════════════════════
+
+class AppRatingView(APIView):
+    """
+    GET  /api/organizations/app-rating/ — список всех оценок + средний рейтинг
+    POST /api/organizations/app-rating/ — добавить или обновить свою оценку
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get_permissions(self):
+        if self.request.method in ('POST', 'DELETE'):
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+
+    def get(self, request):
+        from apps.web.models import AppRating
+        from django.db.models import Avg
+        ratings = AppRating.objects.select_related('user').order_by('-created_at')
+        avg = ratings.aggregate(a=Avg('stars'))['a']
+        items = []
+        for r in ratings:
+            first = getattr(r.user, 'first_name', '') or ''
+            last  = getattr(r.user, 'last_name', '') or ''
+            name  = (first + ' ' + last).strip()
+            if not name:
+                phone = getattr(r.user, 'phone', '') or ''
+                name = 'Пользователь ' + phone[-4:] if len(phone) >= 4 else 'Пользователь'
+            items.append({
+                'id':      r.id,
+                'uid':     r.user.id,
+                'user':    name,
+                'stars':   r.stars,
+                'comment': r.comment,
+                'date':    r.created_at.strftime('%d.%m.%Y'),
+            })
+        return Response({
+            'avg':   round(avg, 1) if avg else None,
+            'count': ratings.count(),
+            'items': items,
+        })
+
+    def post(self, request):
+        from apps.web.models import AppRating
+        from django.db.models import Avg
+        stars   = int(request.data.get('stars', 0))
+        comment = request.data.get('comment', '').strip()
+        if not 1 <= stars <= 5:
+            return Response({'detail': 'Оценка должна быть от 1 до 5'}, status=400)
+        AppRating.objects.update_or_create(
+            user=request.user,
+            defaults={'stars': stars, 'comment': comment}
+        )
+        avg = AppRating.objects.aggregate(a=Avg('stars'))['a']
+        return Response({
+            'detail': 'OK',
+            'avg':    round(avg, 1) if avg else stars,
+            'count':  AppRating.objects.count(),
+        })
+    def delete(self, request):
+        from apps.web.models import AppRating
+        try:
+            rating = AppRating.objects.get(user=request.user)
+            rating.delete()
+            return Response({'detail': 'Оценка удалена'})
+        except AppRating.DoesNotExist:
+            return Response({'detail': 'Оценка не найдена'}, status=404)

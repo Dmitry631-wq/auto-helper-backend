@@ -1,0 +1,49 @@
+{% extends 'web/base.html' %}
+{% block title %}Профиль — Авто-помощник{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Профиль</h1><p>Ваши данные и статистика</p></div>
+<div style="padding:24px 5vw 40px;max-width:800px">
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+      <div style="width:68px;height:68px;border-radius:50%;background:var(--beige);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;font-family:'Unbounded',sans-serif">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+      <div>
+        <div style="font-family:'Unbounded',sans-serif;font-size:20px;font-weight:800">{{ user.first_name }} {{ user.last_name }}</div>
+        <div style="color:var(--gray);font-size:14px;margin-top:3px">{{ user.email|default:user.phone }}</div>
+      </div>
+    </div>
+    <a href="{% url 'web:edit_profile' %}" class="btn btn-dark btn-sm" style="width:auto">✏️ Редактировать профиль</a>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <h3 style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;margin-bottom:18px">📊 Моя статистика</h3>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:20px">
+      <div><div style="font-family:'Unbounded',sans-serif;font-size:26px;font-weight:800">{{ cars_count }}</div><div style="font-size:12px;color:var(--gray);margin-top:3px">автомобилей</div></div>
+      <div><div style="font-family:'Unbounded',sans-serif;font-size:26px;font-weight:800">{{ reviews_count }}</div><div style="font-size:12px;color:var(--gray);margin-top:3px">моих отзывов</div></div>
+      <div><div style="font-family:'Unbounded',sans-serif;font-size:26px;font-weight:800">{{ user.created_at|timesince|truncatewords:1 }}</div><div style="font-size:12px;color:var(--gray);margin-top:3px">с нами</div></div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--beige-mid);margin-bottom:18px">
+    <h3 style="font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;margin-bottom:14px;color:var(--gray)">🌐 СТАТИСТИКА ПЛАТФОРМЫ</h3>
+    <div style="display:flex;gap:24px;flex-wrap:wrap">
+      <div><div style="font-family:'Unbounded',sans-serif;font-size:26px;font-weight:800">{{ total_orgs }}</div><div style="font-size:12px;color:var(--gray);margin-top:3px">организаций</div></div>
+      <div><div style="font-family:'Unbounded',sans-serif;font-size:26px;font-weight:800">{{ total_reviews }}</div><div style="font-size:12px;color:var(--gray);margin-top:3px">всего отзывов</div></div>
+    </div>
+  </div>
+  {% if my_reviews %}
+  <div class="card">
+    <h3 style="font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;margin-bottom:16px">⭐ Мои отзывы</h3>
+    {% for r in my_reviews %}
+    <div style="border-bottom:1px solid var(--beige-mid);padding:12px 0;{% if forloop.last %}border-bottom:none{% endif %}">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <a href="{% url 'web:org_detail' r.organization.pk %}" style="font-weight:700;font-size:13px;color:var(--dark)">{{ r.organization.name }}</a>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="stars">{% for i in '12345' %}{% if forloop.counter <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+          <span style="font-size:11px;color:var(--gray)">{{ r.created_at|date:"d.m.Y" }}</span>
+          <form method="post" action="{% url 'web:delete_review' r.pk %}">{% csrf_token %}<button type="submit" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">Удалить</button></form>
+        </div>
+      </div>
+      {% if r.text %}<p style="font-size:13px;color:var(--gray);margin-top:6px;line-height:1.6">{{ r.text }}</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
